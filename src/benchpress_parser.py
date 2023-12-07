@@ -1,4 +1,5 @@
-import re, os, datetime
+import re, os
+from datetime import datetime
 from pprint import pprint
 
 # the return value of the parser function looks like this:
@@ -14,19 +15,24 @@ def parser(file):
     chat_data = [] # list of dictionaries, each dictionary representing a message
     
     for line in file:
-        if 'end-to-end encrypted' in line or 'created group' in line:
+        if 'end-to-end encrypted' in line or 'created group' in line or 'added you' in line or '<Media omitted>' in line or 'This message was deleted' in line:
             continue
         line = line.replace('\u202f', ' ') # remove non-breaking spaces
         pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*?): (.*)"
         match = re.match(pattern, line)
         if match:
             date_str, time_str, sender, message = match.groups()
-
-            if "<Media omitted>" in message: # for chats exported without audio/files support, skip these lines
-                continue
-
-            chat_data.append({'date': datetime.strptime(date_str, '%d/%m/%y'), 'time': datetime.strptime(time_str, '%I:%M %p').time(), 
+            date, time = datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
+            chat_data.append({'date': date, 'time': time, 
                               'sender': sender, 'message': message})
+        else:
+            pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*)"
+            match = re.match(pattern, line)
+            if match:
+                date_str, time_str, message = match.groups()
+                sender, date, time = 'Chat Information', datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
+                    
+                chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
     return chat_data
 
 if __name__ == "__main__":
