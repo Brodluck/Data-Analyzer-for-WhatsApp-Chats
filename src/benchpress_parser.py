@@ -1,4 +1,4 @@
-import re, os
+import re, os, string
 from datetime import datetime
 from pprint import pprint
 
@@ -14,11 +14,11 @@ from pprint import pprint
 def parser(file):
     chat_data = [] # list of dictionaries, each dictionary representing a message
     msg_characters = ['/', ' - ', ':']
-
     for line in file:
         if 'end-to-end encrypted' in line or 'created group' in line or 'added you' in line or '<Media omitted>' in line or 'This message was deleted' in line:
             continue
         line = line.replace('\u202f', ' ') # remove non-breaking spaces
+        line = line.replace('\n', '') # remove newlines
         pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*?): (.*)"
         match = re.match(pattern, line)
         if match:
@@ -37,8 +37,12 @@ def parser(file):
                             
                         chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
                     break
-                else:  
-                    chat_data[chat_data.__len__() - 1]['message'] += '. ' + line
+                else:
+                    if chat_data[chat_data.__len__() - 1]['message'][-1] in string.punctuation:
+                        chat_data[chat_data.__len__() - 1]['message'] += ' ' + line
+                    else:
+                        chat_data[chat_data.__len__() - 1]['message'] += '. ' + line
+                    break
     return chat_data
 
 if __name__ == "__main__":
@@ -48,4 +52,4 @@ if __name__ == "__main__":
         messages = parser(file)
     
     for message in messages:
-        pprint(message)
+        print(f"{message['date']}, {message['time']} - {message['sender']}: {message['message']}")
