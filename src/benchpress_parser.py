@@ -13,7 +13,8 @@ from pprint import pprint
 
 def parser(file):
     chat_data = [] # list of dictionaries, each dictionary representing a message
-    
+    msg_characters = ['/', ' - ', ':']
+
     for line in file:
         if 'end-to-end encrypted' in line or 'created group' in line or 'added you' in line or '<Media omitted>' in line or 'This message was deleted' in line:
             continue
@@ -26,13 +27,18 @@ def parser(file):
             chat_data.append({'date': date, 'time': time, 
                               'sender': sender, 'message': message})
         else:
-            pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*)"
-            match = re.match(pattern, line)
-            if match:
-                date_str, time_str, message = match.groups()
-                sender, date, time = 'Chat Information', datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
-                    
-                chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
+            for char in msg_characters:
+                if char in line:
+                    pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*)"
+                    match = re.match(pattern, line)
+                    if match:
+                        date_str, time_str, message = match.groups()
+                        sender, date, time = 'Chat Information', datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
+                            
+                        chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
+                    break
+                else:  
+                    chat_data[chat_data.__len__() - 1]['message'] += '. ' + line
     return chat_data
 
 if __name__ == "__main__":
