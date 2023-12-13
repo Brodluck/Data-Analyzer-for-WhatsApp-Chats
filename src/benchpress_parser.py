@@ -1,6 +1,8 @@
-import re, os, string
+import re, os, string, emoji
+import pandas as pd
+import numpy as np
 from datetime import datetime
-from pprint import pprint
+#from pprint import pprint
 from collections import Counter
 
 # the return value of the parser function looks like this:
@@ -57,7 +59,7 @@ def analyze_chat_data(messages):
 
     #percentage of messages by each sender
     total_messages = len(messages)
-    sender_percentage = {sender: (count / total_messages) * 100 
+    sender_percentage = {sender: (count / total_messages) * 100
                          for sender, count in sender_count.items()}
 
     # density of messages over 10 time divisions
@@ -82,6 +84,10 @@ if __name__ == "__main__":
     with open(file_path, 'r', encoding='utf-8') as file:
         messages = parser(file)
     
+    df = pd.DataFrame(messages, columns=['date', 'time', 'sender', 'message'])
+    print(df)
+
+
     sender_count, sender_percentage, time_ranges = analyze_chat_data(messages)
     print('\n')
     for sender, count in sender_count.items():
