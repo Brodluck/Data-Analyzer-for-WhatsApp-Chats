@@ -1,8 +1,7 @@
-import re, os, string, emoji
+import re, os, string
 import pandas as pd
 import numpy as np
 from datetime import datetime
-#from pprint import pprint
 from collections import Counter
 
 # the return value of the parser function looks like this:
@@ -77,6 +76,7 @@ def analyze_chat_data(messages):
         time_ranges[min(division_index, 9)] += 1
 
     return sender_count, sender_percentage, time_ranges
+
 
 if __name__ == "__main__":
     file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'sample.txt')
