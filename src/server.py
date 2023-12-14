@@ -1,5 +1,5 @@
 """
-    To run this, we gotta have installed streamlit:
+    To run this, you gotta have installed streamlit:
         pip3 install streamlit 
         
     then:
@@ -20,7 +20,6 @@ def save_uploaded_file(uploaded_file):
     return st.success(f"Saved file: {uploaded_file.name} in uploaded_files directory")
 
 def plot_sender_count(sender_count):
-    plt.figure(figsize=(6,4))
     plt.bar(sender_count.keys(), sender_count.values())
     plt.xlabel('Sender')
     plt.ylabel('Number of Messages')
@@ -30,26 +29,26 @@ def plot_sender_count(sender_count):
     st.pyplot(plt)
 
 def plot_time_ranges(time_ranges):
-    plt.figure(figsize=(6,4))
     plt.plot(range(len(time_ranges)), time_ranges)
     plt.xlabel('Time Range')
     plt.ylabel('Number of Messages')
     plt.title('Message Density Over Time')
     st.pyplot(plt)
 
-def plot_sender_percentage(sender_percentage):
-    plt.figure(figsize=(6,4))
+import matplotlib.pyplot as plt
+import streamlit as st
+
+def plot_sender_percentage(sender_percentage, filename="sender_percentage_plot.png"):
     labels = sender_percentage.keys()
     sizes = sender_percentage.values()
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
     plt.axis('equal')
     plt.title('Percentage of Messages Sent by Each Sender')
-    st.pyplot(plt)
-
+    plt.savefig(filename)
+    plt.clf()
 
 def main():
-    st.set_page_config(page_title="WhatsApp Analyzer", layout="wide")
-
+    st.set_page_config(page_title="BenchPress Labs", layout="wide")
     st.markdown("""
         <style>
         .main {
@@ -62,23 +61,16 @@ def main():
         }
         </style>
         """, unsafe_allow_html=True)
-
-    st.title("WhatsApp Analyzer by BenchpressLabs")
-
-    if not os.path.exists('uploaded_files'):
-        os.makedirs('uploaded_files')
-
+    st.title("WhatsApp Analyzer by Benchpress Labs")
     uploaded_file = st.file_uploader("Upload your WhatsApp chat file here (Drag and drop or click to browse)", 
                                  type=["txt"], 
                                  help="Drag and drop your WhatsApp chat file here",
                                  label_visibility="collapsed")
-    
     analysis_done = False
-
     if uploaded_file is not None:
         save_uploaded_file(uploaded_file)
-        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-        messages = parser(stringio)
+        with open(file_path, 'r', encoding='utf-8') as file:
+            messages = parser(file)
         sender_count, sender_percentage, time_ranges = analyze_chat_data(messages)
 
         with st.expander("View Analysis"):

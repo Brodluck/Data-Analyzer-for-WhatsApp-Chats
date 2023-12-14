@@ -7,7 +7,6 @@ charset-normalizer==3.3.2
 click==8.1.7
 contourpy==1.2.0
 cycler==0.12.1
-emoji==2.9.0
 fonttools==4.46.0
 gitdb==4.0.11
 GitPython==3.1.40
