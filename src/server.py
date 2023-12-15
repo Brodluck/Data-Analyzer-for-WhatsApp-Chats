@@ -10,6 +10,7 @@
 """
 import streamlit as st
 import os
+from PIL import Image
 import matplotlib.pyplot as plt
 from benchpress_parser import *
 from io import StringIO
@@ -19,24 +20,23 @@ def save_uploaded_file(uploaded_file):
         f.write(uploaded_file.getbuffer())
     return st.success(f"Saved file: {uploaded_file.name} in uploaded_files directory")
 
-def plot_sender_count(sender_count):
+def plot_time_ranges(time_ranges, filename="time_ranges_plot.png"):
+    plt.plot(range(len(time_ranges)), time_ranges)
+    plt.xlabel('Time Range')
+    plt.ylabel('Number of Messages')
+    plt.title('Message Density Over Time')
+    plt.savefig(filename)
+    plt.clf()
+
+def plot_sender_count(sender_count, filename="sender_count_plot.png"):
     plt.bar(sender_count.keys(), sender_count.values())
     plt.xlabel('Sender')
     plt.ylabel('Number of Messages')
     plt.title('Message Count per Sender')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    st.pyplot(plt)
-
-def plot_time_ranges(time_ranges):
-    plt.plot(range(len(time_ranges)), time_ranges)
-    plt.xlabel('Time Range')
-    plt.ylabel('Number of Messages')
-    plt.title('Message Density Over Time')
-    st.pyplot(plt)
-
-import matplotlib.pyplot as plt
-import streamlit as st
+    plt.savefig(filename)
+    plt.clf()
 
 def plot_sender_percentage(sender_percentage, filename="sender_percentage_plot.png"):
     labels = sender_percentage.keys()
@@ -62,33 +62,40 @@ def main():
         </style>
         """, unsafe_allow_html=True)
     st.title("WhatsApp Analyzer by Benchpress Labs")
+    if 'analysis_done' not in st.session_state:
+        st.session_state['analysis_done'] = False
     uploaded_file = st.file_uploader("Upload your WhatsApp chat file here (Drag and drop or click to browse)", 
                                  type=["txt"], 
                                  help="Drag and drop your WhatsApp chat file here",
                                  label_visibility="collapsed")
-    analysis_done = False
     if uploaded_file is not None:
         save_uploaded_file(uploaded_file)
-        with open(file_path, 'r', encoding='utf-8') as file:
-            messages = parser(file)
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        messages = parser(stringio)
         sender_count, sender_percentage, time_ranges = analyze_chat_data(messages)
 
+        plot_sender_count(sender_count)
+        plot_sender_percentage(sender_percentage)
+        plot_time_ranges(time_ranges)
+        plt_count = Image.open("sender_count_plot.png")
+        plt_percentage = Image.open("sender_percentage_plot.png")
+        plt_time_ranges = Image.open("time_ranges_plot.png")
+
         with st.expander("View Analysis"):
-            if sender_count:
-                plot_sender_count(sender_count)
-            if sender_percentage:
-                plot_sender_percentage(sender_percentage)
-            if time_ranges:
-                plot_time_ranges(time_ranges)
-            
-            analysis_done = True
+            st.image(plt_count, use_column_width=True)
+            st.image(plt_percentage, use_column_width=True)
+            st.image(plt_time_ranges, use_column_width=True)
+            st.session_state['analysis_done'] = True
 
-    if analysis_done:        
-        if st.button('Clear Analysis'):
+    if st.session_state['analysis_done']:
+        if st.button('Reset and Analyze New File'):
+            st.session_state['analysis_done'] = False
             st.rerun()
+    
+    os.delete("sender_count_plot.png")
+    os.delete("sender_percentage_plot.png")
+    os.delete("time_ranges_plot.png")
 
-
-            
 if __name__ == "__main__":
     main()
 
