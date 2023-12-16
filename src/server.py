@@ -82,10 +82,9 @@ def main():
         plt_percentage = Image.open("sender_percentage_plot.png").resize((width, height))
         plt_time_ranges = Image.open("time_ranges_plot.png").resize((width, height))
 
-        display_width = 560
+        display_width = 560 # cambiar para que el ancho se setee automaticamente
         with st.expander("View Analysis"):
             col1, col2, col3 = st.columns(3)
-
             with col1:
                 st.image(plt_count, width=display_width)
             with col2:
