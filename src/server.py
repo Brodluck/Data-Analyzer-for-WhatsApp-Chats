@@ -74,27 +74,30 @@ def main():
         messages = parser(stringio)
         sender_count, sender_percentage, time_ranges = analyze_chat_data(messages)
 
+        width, height = 600, 400
         plot_sender_count(sender_count)
         plot_sender_percentage(sender_percentage)
         plot_time_ranges(time_ranges)
-        plt_count = Image.open("sender_count_plot.png")
-        plt_percentage = Image.open("sender_percentage_plot.png")
-        plt_time_ranges = Image.open("time_ranges_plot.png")
+        plt_count = Image.open("sender_count_plot.png").resize((width, height))
+        plt_percentage = Image.open("sender_percentage_plot.png").resize((width, height))
+        plt_time_ranges = Image.open("time_ranges_plot.png").resize((width, height))
 
+        display_width = 560
         with st.expander("View Analysis"):
-            st.image(plt_count, use_column_width=True)
-            st.image(plt_percentage, use_column_width=True)
-            st.image(plt_time_ranges, use_column_width=True)
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.image(plt_count, width=display_width)
+            with col2:
+                st.image(plt_percentage, width=display_width)
+            with col3:
+                st.image(plt_time_ranges, width=display_width)
             st.session_state['analysis_done'] = True
 
     if st.session_state['analysis_done']:
         if st.button('Reset and Analyze New File'):
             st.session_state['analysis_done'] = False
             st.rerun()
-    
-    os.delete("sender_count_plot.png")
-    os.delete("sender_percentage_plot.png")
-    os.delete("time_ranges_plot.png")
 
 if __name__ == "__main__":
     main()
