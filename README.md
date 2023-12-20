@@ -1,7 +1,11 @@
 # Data Analyzer for WhatsApp Chats
 
 ## Overview
-
+Text analysis, also known as text mining, is the process of compiling, analyzing, and 
+extracting valuable insights or information from large volumes of unstructured texts, using 
+machine learning and NLP (natural language processing) techniques.
+The sheer volume of data available on the internet today is incomprehensible. And 
+manually analyzing this data is not really an efficient option.
 
 ## Features
 
