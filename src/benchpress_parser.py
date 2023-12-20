@@ -11,10 +11,16 @@ from collections import Counter
 # sender: string
 # message: string
 
-# mensajes por persona, porcentaje sobre el total de mensajes en el grupo
-# densidad de mensajes por rango de tiempo
-# quien suele hacer el carry de la conver
-# palabra mas usada
+def add_msg_to_chat_data(chat_data, match):
+    date_str, time_str, sender, message = match.groups()
+    if 'AM' in time_str or 'PM' in time_str:
+        time = datetime.strptime(time_str, '%I:%M %p').time()
+    else:
+        time = datetime.strptime(time_str, '%H:%M').time()
+    date = datetime.strptime(date_str, '%d/%m/%y')
+    chat_data.append({'date': date, 'time': time, 
+                      'sender': sender, 'message': message})
+
 
 def parser(file) -> list:
     """Parses exported chat and returns a list of dictionaries, each dictionary representing a message"""
@@ -25,13 +31,15 @@ def parser(file) -> list:
             continue
         line = line.replace('\u202f', ' ') # remove non-breaking spaces
         line = line.replace('\n', '') # remove newlines
-        pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*?): (.*)"
+        # pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*?): (.*)"
+        # match = re.match(pattern, line)
+        # if match:
+        #     add_msg_to_chat_data(chat_data, match)
+        # if 'AM - ' in line or 'PM - ' not in line:
+        pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}) - (.*?): (.*)" # 24 hour format
         match = re.match(pattern, line)
         if match:
-            date_str, time_str, sender, message = match.groups()
-            date, time = datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
-            chat_data.append({'date': date, 'time': time, 
-                              'sender': sender, 'message': message})
+            add_msg_to_chat_data(chat_data, match)
         else:
             for char in msg_characters:
                 if char in line:
@@ -43,7 +51,8 @@ def parser(file) -> list:
                         chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
                     break
                 else:
-                    # while line == '\n', hacer line = nextline, y breakear el while cuando exito
+                    while line == '':
+                        line = next(file)
                     if chat_data[chat_data.__len__() - 1]['message'][-1] in string.punctuation:
                         chat_data[chat_data.__len__() - 1]['message'] += ' ' + line
                     else:
@@ -118,32 +127,13 @@ def calculate_most_used_word_per_user(messages):
         sender = message['sender']
         message_text = message['message']
         
-        # Dividir el mensaje en palabras y filtrar stop words
         words = [word.lower() for word in message_text.split() if word.lower() not in stop_words_spanish]
-        
-        # Contar la frecuencia de las palabras restantes
         word_count = Counter(words)
-        
-        # Obtener la palabra más utilizada (si hay alguna)
         most_used_word = word_count.most_common(1)
-        
-        # Almacenar la palabra más utilizada por cada usuario (si hay alguna)
         if sender in user_most_used_words and most_used_word:
             user_most_used_words[sender].append(most_used_word[0][0])
         elif most_used_word:
             user_most_used_words[sender] = [most_used_word[0][0]]
     
-    # Formatear el resultado
     formatted_result = {user: f'"{word}"' for user, words in user_most_used_words.items() for word in words}
-    
     return formatted_result
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    
-    chat = parser("sample.txt")

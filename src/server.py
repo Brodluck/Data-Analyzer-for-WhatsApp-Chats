@@ -75,7 +75,7 @@ def main():
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
         messages = parser(stringio)
         sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date = analyze_chat_data(messages)
-        most_used_words = calculate_most_used_word_per_user(messages)
+        # most_used_words = calculate_most_used_word_per_user(messages)
 
         width, height = 600, 400
         plot_sender_count(sender_count)
@@ -88,10 +88,7 @@ def main():
         st.write("Total number of messages: ", total_messages)
         st.write("Total number of participants: ", num_senders)
         st.write("Date of the first message: ", first_message_date)
-        st.write("Most ussed word per user: ", most_used_words)
-
-
-       
+        # st.write("Most ussed word per user: ", most_used_words)
 
         display_width = 560 # cambiar para que el ancho se setee automaticamente
         with st.expander("View Analysis"):

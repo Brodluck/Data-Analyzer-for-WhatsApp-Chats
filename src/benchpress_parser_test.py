@@ -11,7 +11,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(messages, columns=['date', 'time', 'sender', 'message'])
     print(df)
 
-    sender_count, sender_percentage, time_ranges = bp.analyze_chat_data(messages)
+    sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date = bp.analyze_chat_data(messages)
     print('\n')
     for sender, count in sender_count.items():
         if sender == 'Chat Information':
@@ -26,3 +26,7 @@ if __name__ == "__main__":
     print('\n')
     for i, time_range in enumerate(time_ranges):
         print(f'{time_range} messages were sent between {i*10} and {(i+1)*10} minutes into the chat.')
+
+    print(f'\nTotal messages: {total_messages}')
+    print(f'Total senders: {num_senders}')
+    print(f'First message was sent on {first_message_date}')
