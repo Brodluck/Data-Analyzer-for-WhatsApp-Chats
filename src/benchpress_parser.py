@@ -11,74 +11,83 @@ from collections import Counter
 # sender: string
 # message: string
 
-def add_msg_to_chat_data(chat_data, match):
+def load_stop_words(filename):
+    with open(os.path.join(os.path.dirname(__file__), '..', 'resources', filename), "r") as file:
+        return set(file.read().splitlines())
+
+def add_msg_to_chat_data(chat_data, match, is_iphone=False):
     date_str, time_str, sender, message = match.groups()
-    if 'AM' in time_str or 'PM' in time_str:
-        time = datetime.strptime(time_str, '%I:%M %p').time()
+
+    if is_iphone:
+        time_format = '%H:%M:%S'
+    elif 'AM' in time_str or 'PM' in time_str:
+        time_format = '%I:%M %p'
     else:
-        time = datetime.strptime(time_str, '%H:%M').time()
-    date = datetime.strptime(date_str, '%d/%m/%y')
-    chat_data.append({'date': date, 'time': time, 
-                      'sender': sender, 'message': message})
+        time_format = '%H:%M'
+    
+    time = datetime.strptime(time_str, time_format).time()
+    
+    # Try parsing with four-digit year first, then fall back to two-digit year
+    try:
+        date = datetime.strptime(date_str, '%d/%m/%Y').date()
+    except ValueError:
+        date = datetime.strptime(date_str, '%d/%m/%y').date()
+
+    chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
 
 
 def parser(file) -> list:
-    """Parses exported chat and returns a list of dictionaries, each dictionary representing a message"""
-    chat_data = [] # list of dictionaries, each dictionary representing a message
-    msg_characters = ['/', ' - ', ':']
+    chat_data = []
+    android_pattern = r"(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{1,2}) - (.*?): (.+)"
+    iphone_pattern = r"\[(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{1,2}:\d{1,2})\] (.*?): (.+)"
+    multiline_message_buffer = []
+
     for line in file:
-        if 'end-to-end encrypted' in line or 'created group' in line or 'added you' in line or '<Media omitted>' in line or 'This message was deleted' in line:
+        line = line.strip()
+
+        # Skip lines with system messages
+        if any(phrase in line for phrase in ['Messages to this chat and calls are now secured with end-to-end encryption. Tap for more info.', 'Messages and calls are end-to-end encrypted']):
             continue
-        line = line.replace('\u202f', ' ') # remove non-breaking spaces
-        line = line.replace('\n', '') # remove newlines
-        # pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*?): (.*)"
-        # match = re.match(pattern, line)
-        # if match:
-        #     add_msg_to_chat_data(chat_data, match)
-        # if 'AM - ' in line or 'PM - ' not in line:
-        pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}) - (.*?): (.*)" # 24 hour format
-        match = re.match(pattern, line)
-        if match:
-            add_msg_to_chat_data(chat_data, match)
+
+        # Try matching with Android pattern
+        android_match = re.match(android_pattern, line)
+        # Try matching with iPhone pattern
+        iphone_match = re.match(iphone_pattern, line)
+
+        if android_match:
+            # If multiline_message_buffer is not empty, append it to the last chat_data message
+            if multiline_message_buffer:
+                chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
+                multiline_message_buffer.clear()
+            add_msg_to_chat_data(chat_data, android_match)
+        elif iphone_match:
+            # If multiline_message_buffer is not empty, append it to the last chat_data message
+            if multiline_message_buffer:
+                chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
+                multiline_message_buffer.clear()
+            add_msg_to_chat_data(chat_data, iphone_match, is_iphone=True)
         else:
-            for char in msg_characters:
-                if char in line:
-                    pattern = r"(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2}\s[APM]{2}) - (.*)"
-                    match = re.match(pattern, line)
-                    if match:
-                        date_str, time_str, message = match.groups()
-                        sender, date, time = 'Chat Information', datetime.strptime(date_str, '%d/%m/%y'), datetime.strptime(time_str, '%I:%M %p').time()
-                        chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
-                    break
-                else:
-                    while line == '':
-                        line = next(file)
-                    if chat_data[chat_data.__len__() - 1]['message'][-1] in string.punctuation:
-                        chat_data[chat_data.__len__() - 1]['message'] += ' ' + line
-                    else:
-                        chat_data[chat_data.__len__() - 1]['message'] += '. ' + line
-                    break
+            # If the line doesn't match any pattern, add it to the multiline_message_buffer
+            multiline_message_buffer.append(line)
+
+    # If there's anything left in the buffer after processing all lines, append it to the last message
+    if multiline_message_buffer and chat_data:
+        chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
+
     return chat_data
 
 def analyze_chat_data(messages):
-    # count messages by each sender
+    if not messages:
+        return Counter(), {}, [], 0, 0, None
+
     sender_count = Counter(message['sender'] for message in messages)
     num_senders = len(sender_count)
     
-    
-    #percentage of messages by each sender
     total_messages = len(messages)
-    sender_percentage = {sender: (count / total_messages) * 100
-                         for sender, count in sender_count.items()}
+    sender_percentage = {sender: (count / total_messages) * 100 for sender, count in sender_count.items()}
     
-    #date time of the first message sended
     first_message = messages[0]
     first_message_date = datetime.combine(first_message['date'], first_message['time'])
-
-
-    # density of messages over 10 time divisions
-    if total_messages == 0:
-        return sender_count, sender_percentage, [0]*10
 
     start_datetime = datetime.combine(messages[0]['date'], messages[0]['time'])
     end_datetime = datetime.combine(messages[-1]['date'], messages[-1]['time'])
@@ -93,34 +102,7 @@ def analyze_chat_data(messages):
     return sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date
 
 def calculate_most_used_word_per_user(messages):
-    stop_words_spanish = {
-        'de', 'la', 'el', 'en', 'y', 'a', 'que', 'se', 'del', 'las', 'los', 'por', 'un', 'con', 'no', 'una', 'su',
-        'para', 'es', 'al', 'lo', 'como', 'más', 'pero', 'sus', 'le', 'ya', 'o', 'este', 'sí', 'porque', 'esta', 'entre',
-        'cuando', 'muy', 'sin', 'sobre', 'también', 'me', 'hasta', 'hay', 'donde', 'quien', 'desde', 'todo', 'nos', 'durante',
-        'todos', 'uno', 'les', 'ni', 'contra', 'otros', 'ese', 'eso', 'ante', 'ellos', 'e', 'esto', 'mí', 'antes', 'algunos',
-        'qué', 'unos', 'yo', 'otro', 'otras', 'otra', 'él', 'tanto', 'esa', 'estos', 'mucho', 'quienes', 'nada', 'muchos',
-        'cual', 'poco', 'ella', 'estar', 'estas', 'algunas', 'nosotros', 'otras', 'otra', 'él', 'tanto', 'mía', 'tuyas',
-        'otras', 'suyo', 'nuestro', 'vosotros', 'vuestra', 'vuestros', 'vuestras', 'esos', 'esas', 'estoy', 'estás', 'está',
-        'estamos', 'estáis', 'están', 'esté', 'estés', 'estemos', 'estéis', 'estén', 'estaré', 'estarás', 'estará', 'estaremos',
-        'estaréis', 'estarán', 'estaría', 'estarías', 'estaríamos', 'estaríais', 'estarían', 'estaba', 'estabas', 'estábamos',
-        'estabais', 'estaban', 'estuve', 'estuviste', 'estuvo', 'estuvimos', 'estuvisteis', 'estuvieron', 'estuviera', 'estuvieras',
-        'estuviéramos', 'estuvierais', 'estuvieran', 'estuviese', 'estuvieses', 'estuviésemos', 'estuvieseis', 'estuviesen', 'estando',
-        'estado', 'estada', 'estados', 'estadas', 'estad', 'he', 'has', 'ha', 'hemos', 'habéis', 'han', 'haya', 'hayas', 'haya',
-        'hayamos', 'hayáis', 'hayan', 'habré', 'habrás', 'habrá', 'habremos', 'habréis', 'habrán', 'habría', 'habrías', 'habríamos',
-        'habríais', 'habrían', 'había', 'habías', 'habíamos', 'habíais', 'habían', 'hube', 'hubiste', 'hubo', 'hubimos', 'hubisteis',
-        'hubieron', 'hubiera', 'hubieras', 'hubiéramos', 'hubierais', 'hubieran', 'hubiese', 'hubieses', 'hubiésemos', 'hubieseis',
-        'hubiesen', 'habiendo', 'habido', 'habida', 'habidos', 'habidas', 'soy', 'eres', 'es', 'somos', 'sois', 'son', 'sea', 'seas',
-        'seamos', 'seáis', 'sean', 'seré', 'serás', 'será', 'seremos', 'seréis', 'serán', 'sería', 'serías', 'seríamos', 'seríais',
-        'serían', 'era', 'eras', 'éramos', 'erais', 'eran', 'fui', 'fuiste', 'fue', 'fuimos', 'fuisteis', 'fueron', 'fuera', 'fueras',
-        'fuéramos', 'fuerais', 'fueran', 'fuese', 'fueses', 'fuésemos', 'fueseis', 'fuesen', 'sintiéndome', 'sintiéndote', 'sintiéndose',
-        'sintiéndonos', 'sintiéndoos', 'sintiéndose', 'me', 'te', 'se', 'nos', 'os', 'se', 'tengo', 'tienes', 'tiene', 'tenemos',
-        'tenéis', 'tienen', 'he', 'has', 'ha', 'hemos', 'habéis', 'han', 'haya', 'hayas', 'haya', 'hayamos', 'hayáis', 'hayan',
-        'habré', 'habrás', 'habrá', 'habremos', 'habréis', 'habrán', 'habría', 'habrías', 'habríamos', 'habríais', 'habrían', 'había',
-        'habías', 'habíamos', 'habíais', 'habían', 'hube', 'hubiste', 'hubo', 'hubimos', 'hubisteis', 'hubieron', 'hubiera', 'hubieras',
-        'hubiéramos', 'hubierais', 'hubieran', 'hubiese', 'hubieses', 'hubiésemos', 'hubieseis', 'hubiesen', 'habiendo', 'habido',
-        'habida', 'habidos', 'habidas'
-    }
-    
+    stop_words_spanish = load_stop_words('stop_words_spanish.txt')
     user_most_used_words = {}
     
     for message in messages:
