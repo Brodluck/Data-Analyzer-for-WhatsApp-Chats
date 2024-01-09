@@ -99,7 +99,22 @@ def main():
                                      type=["txt"], 
                                      help="Drag and drop your WhatsApp chat file here",
                                      label_visibility="collapsed")
-    
+
+    text_search = st.text_input("Search messages by keywords", value="")
+
+
+    if text_search:
+        with open(os.path.join(os.path.dirname(__file__), '..', 'resources', selected_file), "r") as file:
+            stringio = StringIO(file.read())
+            messages = parser(stringio)
+
+            results = []
+            for message in messages:
+                if text_search in message['message']:
+                    results.append(message)
+
+            st.write(results)
+
     if uploaded_file is not None:
         file_path = save_uploaded_file(uploaded_file)
         st.sidebar.markdown(f"You are viewing: **{uploaded_file.name}**")
@@ -125,6 +140,7 @@ def main():
                 for i, file in enumerate(files):
                     image = Image.open(file)
                     cols[i].image(image, use_column_width=True)
+
 
 
 if __name__ == "__main__":
