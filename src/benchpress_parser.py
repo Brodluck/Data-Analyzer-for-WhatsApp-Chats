@@ -1,6 +1,7 @@
-import re, os, string
+import re, os, string, unicodedata
 from datetime import datetime
 from collections import Counter
+
 
 # the return value of the parser function looks like this:
 # [message1 : dict, message2 : dict, message3 : dict, ...]
@@ -11,9 +12,23 @@ from collections import Counter
 # sender: string
 # message: string
 
+def normalize_text(text): #not working
+    # Normalize accents and remove punctuation
+    text = ''.join(char for char in unicodedata.normalize('NFD', text)
+                   if char not in string.punctuation)
+    # Convert to lowercase
+    text = text.lower()
+    # Remove accents
+    text = unicodedata.normalize('NFKD', text)
+    text = u"".join([c for c in text if not unicodedata.combining(c)])
+    return text
+
 def load_stop_words(filename):
-    with open(os.path.join(os.path.dirname(__file__), '..', 'resources', filename), "r") as file:
-        return set(file.read().splitlines())
+    # Ensure the path is correct
+    filepath = os.path.join(os.path.dirname(__file__), '..', 'resources', filename)
+    with open(filepath, "r", encoding='utf-8') as file:
+        stop_words = {normalize_text(word.strip()) for word in file}
+    return stop_words
 
 def add_msg_to_chat_data(chat_data, match, is_iphone=False):
     date_str, time_str, sender, message = match.groups()
@@ -46,31 +61,26 @@ def parser(file) -> list:
         line = line.strip()
 
         # Skip lines with system messages
-        if any(phrase in line for phrase in ['Messages to this chat and calls are now secured with end-to-end encryption. Tap for more info.', 'Messages and calls are end-to-end encrypted']):
+        if any(phrase in line for phrase in ['Messages to this chat and calls are now secured with end-to-end encryption.\
+                                            Tap for more info.', 'Messages and calls are end-to-end encrypted']):
             continue
 
-        # Try matching with Android pattern
         android_match = re.match(android_pattern, line)
-        # Try matching with iPhone pattern
         iphone_match = re.match(iphone_pattern, line)
 
         if android_match:
-            # If multiline_message_buffer is not empty, append it to the last chat_data message
             if multiline_message_buffer:
                 chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
                 multiline_message_buffer.clear()
             add_msg_to_chat_data(chat_data, android_match)
         elif iphone_match:
-            # If multiline_message_buffer is not empty, append it to the last chat_data message
             if multiline_message_buffer:
                 chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
                 multiline_message_buffer.clear()
             add_msg_to_chat_data(chat_data, iphone_match, is_iphone=True)
         else:
-            # If the line doesn't match any pattern, add it to the multiline_message_buffer
             multiline_message_buffer.append(line)
 
-    # If there's anything left in the buffer after processing all lines, append it to the last message
     if multiline_message_buffer and chat_data:
         chat_data[-1]['message'] += ' ' + ' '.join(multiline_message_buffer)
 
@@ -101,21 +111,26 @@ def analyze_chat_data(messages):
 
     return sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date
 
+
+
 def calculate_most_used_word_per_user(messages):
+    user_word_counts = {}
     stop_words_spanish = load_stop_words('stop_words_spanish.txt')
-    user_most_used_words = {}
-    
+
     for message in messages:
         sender = message['sender']
-        message_text = message['message']
-        
-        words = [word.lower() for word in message_text.split() if word.lower() not in stop_words_spanish]
-        word_count = Counter(words)
-        most_used_word = word_count.most_common(1)
-        if sender in user_most_used_words and most_used_word:
-            user_most_used_words[sender].append(most_used_word[0][0])
-        elif most_used_word:
-            user_most_used_words[sender] = [most_used_word[0][0]]
-    
-    formatted_result = {user: f'"{word}"' for user, words in user_most_used_words.items() for word in words}
-    return formatted_result
+        message_text = normalize_text(message['message'])
+        words = message_text.split()
+        filtered_words = [word for word in words if word not in stop_words_spanish]
+
+        if sender not in user_word_counts:
+            user_word_counts[sender] = Counter()
+
+        user_word_counts[sender].update(filtered_words)
+
+    user_most_used_word = {
+        user: word_counts.most_common(1)[0] if word_counts else ('None', 0)
+        for user, word_counts in user_word_counts.items()
+    }
+
+    return user_most_used_word

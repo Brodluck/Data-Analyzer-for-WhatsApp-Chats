@@ -4,30 +4,50 @@
         
     then:
         streamlit run server.py
-    
 """
 import streamlit as st
-import os, hashlib
+import os, hashlib, json
 import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 from benchpress_parser import *
 from io import StringIO
 
-def save_uploaded_file(uploaded_file):
+def load_hash_dictionary(file_path):
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+    else:
+        return {}
+
+def save_hash_dictionary(file_path, hash_dict):
+    with open(file_path, "w") as f:
+        json.dump(hash_dict, f)
+
+def save_uploaded_file(uploaded_file, hash_dict_file='hash_dict.json'):
     file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()
-    file_name = f"{file_hash}_{uploaded_file.name}"
-    file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', file_name)
-
-    if not os.path.exists(file_path):
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        return file_path
-
+    hash_dict_path = os.path.join(os.path.dirname(__file__), '..', 'resources/dicts', hash_dict_file)
+    hash_dict = load_hash_dictionary(hash_dict_path)
+    
+    if file_hash in hash_dict:
+        st.error('This file has already been uploaded.')
+        return None
+    
+    file_name = f"{uploaded_file.name}"
+    file_path = os.path.join(os.path.dirname(__file__), '..', 'resources/uploaded_chats', file_name)
+    
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    hash_dict[file_hash] = uploaded_file.name
+    save_hash_dictionary(hash_dict_path, hash_dict)
     return file_path
 
 def list_uploaded_files():
-    files_path = os.path.join(os.path.dirname(__file__), '..', 'resources')
+    files_path = os.path.join(os.path.dirname(__file__), '..', 'resources/uploaded_chats')
     return [f for f in os.listdir(files_path) if os.path.isfile(os.path.join(files_path, f))]
 
 def process_user_input(user_input):
@@ -91,7 +111,7 @@ def main():
 
         text_search = st.text_input("Search messages by keywords", value="")
         if text_search:
-            with open(os.path.join(os.path.dirname(__file__), '..', 'resources', selected_file), "r") as file:
+            with open(os.path.join(os.path.dirname(__file__), '..', 'resources/uploaded_chats', selected_file), "r") as file:
                 stringio = StringIO(file.read())
                 messages = parser(stringio)
 
@@ -113,7 +133,7 @@ def main():
                     st.dataframe(df_results)
 
         if selected_file:
-            with open(os.path.join(os.path.dirname(__file__), '..', 'resources', selected_file), "r") as file:
+            with open(os.path.join(os.path.dirname(__file__), '..', 'resources/uploaded_chats', selected_file), "r") as file:
                 stringio = StringIO(file.read())
                 messages = parser(stringio)
                 sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date = analyze_chat_data(messages)
@@ -126,6 +146,13 @@ def main():
                 st.write("Total number of messages: ", total_messages)
                 st.write("Total number of participants: ", num_senders)
                 st.write("Date of the first message: ", first_message_date)
+                user_most_used_word = calculate_most_used_word_per_user(messages)
+                most_used_word_df = pd.DataFrame([
+                    {"Sender": sender, "Word": word, "Count": count}
+                    for sender, (word, count) in user_most_used_word.items()
+                ])
+                st.subheader("Top Used Words per User")
+                st.table(most_used_word_df)
 
                 with st.expander("View Analysis"):
                     cols = st.columns(3)

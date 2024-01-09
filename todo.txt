@@ -2,16 +2,19 @@ DONE:
 
 - finalise the parser for other device - DONE (yet to be tested with more chats)
 - ability to add more whatsapp chats for analysis, keeping previous. - DONE
-- add a chat box/bot to the page - DONE (added but with no functionality)
+- search bar for text - DONE
+- frequency analysis of the most used words - partially DONE
 
 
 Yet to be done:
-- with the chatbot you can ask questions about your conversation *AI*
+- Add a chat box/bot to the page  *AI*
+- With the chatbot you can ask questions about your conversation  *AI*
   e.g.
   "What was the topic of the conversation during last week"
   "Does my mum hate me" <- if response possible
-- requency analysis of the most used words
-- mood analysis *AI*
-- convert each text message to emoji only *AI*
-- translate each of the chats *AI*
-- search bar for text
+- Mood analysis *AI*
+- Convert each text message to emoji only *AI*
+- Translate each of the chats *AI*
+
+- Add the stop_words_spanish to the counter, so it doesnt count those words. Actual form doesnt work.
+- Change the time range in the message density over time graph (not a requirement nor a priority)
