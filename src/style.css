@@ -1,0 +1,13 @@
+.fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    z-index: 9999;
+    padding: 10px 0;
+    box-shadow: 0 2px 2px -2px gray;
+}
+.stApp {
+    margin-top: 60px;
+}
