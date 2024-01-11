@@ -1,7 +1,6 @@
 import re, os, string, unicodedata
 from datetime import datetime
-from collections import Counter
-
+from collections import Counter, defaultdict
 
 # the return value of the parser function looks like this:
 # [message1 : dict, message2 : dict, message3 : dict, ...]
@@ -49,7 +48,6 @@ def add_msg_to_chat_data(chat_data, match, is_iphone=False):
         date = datetime.strptime(date_str, '%d/%m/%y').date()
 
     chat_data.append({'date': date, 'time': time, 'sender': sender, 'message': message})
-
 
 def parser(file) -> list:
     chat_data = []
@@ -111,8 +109,6 @@ def analyze_chat_data(messages):
 
     return sender_count, sender_percentage, time_ranges, total_messages, num_senders, first_message_date
 
-
-
 def calculate_most_used_word_per_user(messages):
     user_word_counts = {}
     stop_words_spanish = load_stop_words('stop_words_spanish.txt')
@@ -134,3 +130,9 @@ def calculate_most_used_word_per_user(messages):
     }
 
     return user_most_used_word
+
+def get_daily_chats(chat_data):
+    daily_chats = defaultdict(list)
+    for message in chat_data:
+        daily_chats[message['date']].append(message['message'])
+    return daily_chats

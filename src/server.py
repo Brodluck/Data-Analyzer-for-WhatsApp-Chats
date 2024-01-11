@@ -8,10 +8,12 @@
 import streamlit as st
 import os, hashlib, json
 import pandas as pd
-from PIL import Image
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+from PIL import Image
 from benchpress_parser import *
 from io import StringIO
+import replicate
 
 def load_hash_dictionary(file_path):
     if os.path.exists(file_path):
@@ -88,15 +90,82 @@ def load_css(file_name):
     with open(file_name, "r") as f:
         return f.read()
 
+def get_unique_dates_from_chat(file_path):
+    with open(file_path, "r") as file:
+        stringio = StringIO(file.read())
+        messages = parser(stringio)
+
+    unique_dates = sorted({message['date'].strftime("%Y-%m-%d") for message in messages})
+    return unique_dates
+
+def filter_messages_by_date(messages, selected_date):
+    return [msg for msg in messages if msg['date'].strftime("%Y-%m-%d") == selected_date]
+
 def main():
     st.set_page_config(page_title="BenchPress Labs", layout="wide")
     css_path = os.path.join(os.path.dirname(__file__), "style.css")
     st.markdown(f'<style>{load_css(css_path)}</style>', unsafe_allow_html=True)
     st.title("WhatsApp Analyzer by Benchpress Labs")
+    
+    #AI LLM stuff
+    # load_dotenv()
+    # api_token = os.getenv('REPLICATE_API_TOKEN')
+    # client = replicate.Client(api_token=api_token)
 
     with st.sidebar:
         uploaded_files = list_uploaded_files()
         selected_file = st.selectbox("Uploaded Chats", uploaded_files)
+
+        if selected_file:
+            file_path = os.path.join(os.path.dirname(__file__), '..', 'resources/uploaded_chats', selected_file)
+            st.session_state['file_path'] = file_path
+            unique_dates = get_unique_dates_from_chat(file_path)
+            selected_date = st.selectbox("Select Date for ChatBot", unique_dates)
+
+        st.sidebar.write("ChatBot")
+        if 'chat_history' not in st.session_state:
+            st.session_state['chat_history'] = []
+
+        user_input = st.sidebar.text_input("Type your message here:", key="chat_input")
+        if st.sidebar.button("Send"):
+            if 'file_path' in st.session_state and os.path.exists(st.session_state['file_path']):
+                with open(st.session_state['file_path'], "r") as file:
+                    stringio = StringIO(file.read())
+                    messages = parser(stringio)
+                    filtered_messages = filter_messages_by_date(messages, selected_date)
+
+                # Prepare chat data for LLM
+                chat_text = " ".join([f"{msg['sender']}: {msg['message']};" for msg in filtered_messages])
+                combined_input = f"\"{chat_text}\"\nWith this messages data, answer this question: {user_input}"
+                # print(combined_input)
+                # Query the LLM model
+                # Adjust the following as per your LLM configuration
+                client = replicate.Client(api_token="")
+                # bot_response = client.predictions.create(
+                for event in replicate.stream(
+                  "meta/llama-2-70b-chat",
+                    input={
+                        "debug": False,
+                        "top_p": 1,
+                        "prompt": combined_input,
+                        "temperature": 0.5,
+                        "system_prompt": "You are a helpful, respectful and honest assistant. You will help to analyze WhatApp's chats conversations. You will get the conversations already parsed, each message have the name or their number if the contact is not added, and then after a colon (:) will be the message. They will be separated for the next message by a semicolon (;) even when the sender were the same",
+                        "max_new_tokens": 500,
+                        "min_new_tokens": -1
+                    },
+                ):
+                    print(str(event), end="")
+                st.session_state['chat_history'].append(("Bot", str(event)))
+
+                # Clear the user input field
+                st.session_state.chat_input = ""
+
+            else:
+                st.sidebar.error("Please select an uploaded chat file first.")
+
+        # Display chat history
+        for author, message in st.session_state['chat_history']:
+            st.sidebar.write(f"{author}: {message}")
 
     with st.container():
         uploaded_file = st.file_uploader("Upload your WhatsApp chat file here (Drag and drop or click to browse)", 
@@ -105,8 +174,9 @@ def main():
                                         label_visibility="collapsed")
         
         if uploaded_file is not None:
-            file_path = save_uploaded_file(uploaded_file)
-            st.sidebar.markdown(f"You are viewing: **{uploaded_file.name}**")
+            # file_path = save_uploaded_file(uploaded_file)
+            st.session_state['file_path'] = save_uploaded_file(uploaded_file)
+            # st.sidebar.markdown(f"You are viewing: **{uploaded_file.name}**")
 
 
         text_search = st.text_input("Search messages by keywords", value="")
