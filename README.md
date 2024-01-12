@@ -28,7 +28,17 @@ manually analyzing this data is not really an efficient option.
    pip3 install -r requirements.txt
    ```
 
-3. **Run the Application:**
+3. **Setting up token**
+   ```bash
+      nano ~/.bashrc
+   ```
+   write the following line at the end of the file:
+   ```bash
+      export REPLICATE_API_TOKEN = your_token
+   ```
+   ctrl+x and y to save, then exit
+
+4. **Run the Application:**
    ```bash
    streamlit run server.py 
    ```
@@ -42,4 +52,4 @@ manually analyzing this data is not really an efficient option.
 
 ## License
 
-No lincense yet
+No lincense

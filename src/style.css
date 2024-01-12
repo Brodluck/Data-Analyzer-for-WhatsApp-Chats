@@ -11,3 +11,33 @@
 .stApp {
     margin-top: 60px;
 }
+.chat-message {
+    padding: 10px;
+    border-radius: 20px;
+    margin: 5px;
+    word-wrap: break-word;
+    max-width: 80%;
+    display: inline-block;
+}
+.user-message {
+    background-color: #0084FF;
+    color: white;
+    margin-left: auto;
+    margin-right: 0;
+}
+.bot-message {
+    background-color: #e5e5ea;
+    color: black;
+    margin-left: 0;
+    margin-right: auto;
+}
+.chat-author {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 2px;
+}
+.chat-container {
+    padding: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+}

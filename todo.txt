@@ -4,20 +4,17 @@ DONE:
 - ability to add more whatsapp chats for analysis, keeping previous. - DONE
 - search bar for text - DONE
 - frequency analysis of the most used words - partially DONE
-
-
-Yet to be done:
-- Add a chat box/bot to the page  *AI*
-- With the chatbot you can ask questions about your conversation  *AI*
+- Add a chat box/bot to the page  *AI* DONE
+- With the chatbot you can ask questions about your conversation  *AI* DONE
   e.g.
   "What was the topic of the conversation during last week"
   "Does my mum hate me" <- if response possible
-- Mood analysis *AI*
+- Mood analysis *AI* DONE
+- Translate each of the chats *AI* DONE
 - Convert each text message to emoji only *AI*
-- Translate each of the chats *AI*
+
+
+Yet to be done:
 
 - Add the stop_words_spanish to the counter, so it doesnt count those words. Actual form doesnt work.
 - Change the time range in the message density over time graph (not a requirement nor a priority)
-
-
-Vectorization, split it into dates. (chop it?) langchange 
