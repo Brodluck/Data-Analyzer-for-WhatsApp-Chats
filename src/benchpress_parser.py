@@ -11,22 +11,13 @@ from collections import Counter, defaultdict
 # sender: string
 # message: string
 
-def normalize_text(text): #not working
-    # Normalize accents and remove punctuation
-    text = ''.join(char for char in unicodedata.normalize('NFD', text)
-                   if char not in string.punctuation)
-    # Convert to lowercase
-    text = text.lower()
-    # Remove accents
-    text = unicodedata.normalize('NFKD', text)
-    text = u"".join([c for c in text if not unicodedata.combining(c)])
-    return text
-
 def load_stop_words(filename):
-    # Ensure the path is correct
     filepath = os.path.join(os.path.dirname(__file__), '..', 'resources', filename)
     with open(filepath, "r", encoding='utf-8') as file:
-        stop_words = {normalize_text(word.strip()) for word in file}
+        stop_words = []
+        for line in file:
+            words_in_line = line.strip().split(',')
+            stop_words.extend(words_in_line)
     return stop_words
 
 def add_msg_to_chat_data(chat_data, match, is_iphone=False):
@@ -58,9 +49,8 @@ def parser(file) -> list:
     for line in file:
         line = line.strip()
 
-        # Skip lines with system messages
         if any(phrase in line for phrase in ['Messages to this chat and calls are now secured with end-to-end encryption.\
-                                            Tap for more info.', 'Messages and calls are end-to-end encrypted']):
+                                            Tap for more info.', 'Messages and calls are end-to-end encrypted', '<Media omitted>']):
             continue
 
         android_match = re.match(android_pattern, line)
@@ -88,15 +78,16 @@ def analyze_chat_data(messages):
     if not messages:
         return Counter(), {}, [], 0, 0, None
 
+    messages = [msg for msg in messages]
     sender_count = Counter(message['sender'] for message in messages)
     num_senders = len(sender_count)
-    
     total_messages = len(messages)
     sender_percentage = {sender: (count / total_messages) * 100 for sender, count in sender_count.items()}
-    
-    first_message = messages[0]
-    first_message_date = datetime.combine(first_message['date'], first_message['time'])
 
+    if not messages:
+        return Counter(), {}, [], 0, 0, None
+
+    first_message_date = datetime.combine(messages[0]['date'], messages[0]['time'])
     start_datetime = datetime.combine(messages[0]['date'], messages[0]['time'])
     end_datetime = datetime.combine(messages[-1]['date'], messages[-1]['time'])
     division_span = (end_datetime - start_datetime) / 10
@@ -112,16 +103,20 @@ def analyze_chat_data(messages):
 def calculate_most_used_word_per_user(messages):
     user_word_counts = {}
     stop_words_spanish = load_stop_words('stop_words_spanish.txt')
+    unwanted_patterns = ["<Multimedia omitido>", "<adjunto:", "omitido>", "<Media omitted>", "Llamada.","q", "Q","null"]
 
     for message in messages:
         sender = message['sender']
-        message_text = normalize_text(message['message'])
+        message_text = message['message']
+
+        if any(unwanted in message_text for unwanted in unwanted_patterns):
+            continue
+
         words = message_text.split()
-        filtered_words = [word for word in words if word not in stop_words_spanish]
+        filtered_words = [word for word in words if word.lower() not in stop_words_spanish]
 
         if sender not in user_word_counts:
             user_word_counts[sender] = Counter()
-
         user_word_counts[sender].update(filtered_words)
 
     user_most_used_word = {
