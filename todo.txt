@@ -18,6 +18,7 @@ DONE:
 Yet to be done:
 
 - Change the time range in the message density over time graph (not a requirement nor a priority)
+- Implement chat memory for the chatbot (dunno if a requirement)
 
 
 Ideas:

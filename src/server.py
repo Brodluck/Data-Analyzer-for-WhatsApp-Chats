@@ -105,6 +105,27 @@ def main():
             st.session_state['file_path'] = file_path
             unique_dates = get_unique_dates_from_chat(file_path)
             selected_date = st.selectbox("Select Date for ChatBot", unique_dates)
+            if selected_date:
+                    with open(file_path, "r") as file:
+                        stringio = StringIO(file.read())
+                        messages = parser(stringio)
+                        filtered_messages = filter_messages_by_date(messages, selected_date)
+
+                        if 'show_full_message' not in st.session_state:
+                            st.session_state.show_full_message = False
+
+                        limited_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages[:5]])
+                        full_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages])
+
+                        with st.expander("Sneak Peek of the Chat"):
+                            if not st.session_state.show_full_message:
+                                st.write(limited_sneak_peek)
+                                if st.button("Show More", key="show_more"):
+                                    st.session_state.show_full_message = True
+                            else:
+                                st.write(full_sneak_peek)
+                                if st.button("Show Less", key="show_less"):
+                                    st.session_state.show_full_message = False
 
         st.sidebar.write("ChatBot")
         if 'chat_history' not in st.session_state:
