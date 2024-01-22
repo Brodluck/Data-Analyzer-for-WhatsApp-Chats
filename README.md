@@ -1,11 +1,7 @@
 # Data Analyzer for WhatsApp Chats
 
 ## Overview
-Text analysis, also known as text mining, is the process of compiling, analyzing, and 
-extracting valuable insights or information from large volumes of unstructured texts, using 
-machine learning and NLP (natural language processing) techniques.
-The sheer volume of data available on the internet today is incomprehensible. And 
-manually analyzing this data is not really an efficient option.
+This is a Python project for the computer science subject Python in the Enterprise. The main purpose of the project is to create a web application using the Streamlit framework, to analyze and synthesize data from exported WhatsApp chats. Additionally, it involves the use of a chatbot employing LLM for further analysis and engaging activities with the data.
 
 ## Features
 
