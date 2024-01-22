@@ -13,13 +13,4 @@ DONE:
 - Translate each of the chats *AI* - DONE
 - Convert each text message to emoji only *AI* - DONE
 - Add the stop_words_spanish to the counter, so it doesnt count those words. Actual form doesnt work. - DONE
-
-
-Yet to be done:
-
-- Change the time range in the message density over time graph (not a requirement nor a priority)
-- Implement chat memory for the chatbot (dunno if a requirement)
-
-
-Ideas:
-Add a chat viewer in a pop-up to get a quick overview of what was discussed on that day
+- Add a chat viewer in a pop-up to get a quick overview of what was discussed on that day - DONE (not a requirement)

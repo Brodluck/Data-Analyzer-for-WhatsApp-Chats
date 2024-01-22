@@ -146,13 +146,13 @@ def main():
                 combined_input = f"\"{chat_text}\"\nWith this data, answer this question: {user_input}"
 
                 output = replicate.run(
-                  "meta/llama-2-70b-chat",
+                    "meta/llama-2-70b-chat",
                     input={
                         "debug": False,
                         "top_p": 1,
                         "prompt": combined_input,
                         "temperature": 0.5,
-                        "system_prompt": "Each message have the name or their contact number, and then after a colon, will be the message. Separated is the message by a semicolon, even when the sender were the same",
+                        "system_prompt": "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.",
                         "max_new_tokens": 500,
                         "min_new_tokens": -1
                     },
