@@ -9,11 +9,11 @@ import streamlit as st
 import os, hashlib, json
 import pandas as pd
 import replicate
-from plotting import *
 from dotenv import load_dotenv
 from PIL import Image
-from benchpress_parser import *
 from io import StringIO
+from plotting import plot_sender_count, plot_sender_percentage, plot_time_ranges
+from benchpress_parser import parser, analyze_chat_data, calculate_most_used_word_per_user
 
 def load_hash_dictionary(file_path):
     if os.path.exists(file_path):
