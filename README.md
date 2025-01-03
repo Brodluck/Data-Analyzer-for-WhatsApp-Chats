@@ -4,13 +4,27 @@
 This is a Python project for the computer science subject Python in the Enterprise. The main purpose of the project is to create a web application using the Streamlit framework, to analyze and synthesize data from exported WhatsApp chats. Additionally, it involves the use of a chatbot employing LLM for further analysis and engaging activities with the data.
 
 ## Features
-
+- Chat data visualization and analysis
+- Message search functionality
+- Interactive AI chatbot using Groq API
+- Support for both iPhone and Android WhatsApp chat formats
+- Message statistics and user analytics
+- Universal chat parser supporting both iOS and Android export formats
 
 ## Technology Stack
 
 - **Programming Language:** Python
-- **Libraries:** Utilizes various Python libraries for statistical calculations, and GUI development.
-- **Data Extraction:** Hand-programmed parser for WhatsApp .txt file extraction.
+- **Framework:** Streamlit
+- **AI Model:** Groq API (llama-3.3-70b-versatile)
+- **Libraries:** Matplotlib, Pandas
+- **Data Extraction:** Custom WhatsApp chat parser with cross-platform support
+
+## Chat Parser
+The application includes a robust chat parser that automatically detects and processes WhatsApp chat exports from both iOS and Android devices. This ensures compatibility regardless of the source device:
+- **iOS Format:** Handles the specific timestamp and message format used in iPhone exports `[DD/MM/YY, HH:mm:ss]`
+- **Android Format:** Processes Android's export format `DD/MM/YY, HH:mm -`
+- **Multi-line Messages:** Properly handles messages that span multiple lines
+- **Special Messages:** Filters system messages and media placeholders
 
 ## Getting Started
 
@@ -24,15 +38,20 @@ This is a Python project for the computer science subject Python in the Enterpri
    pip3 install -r requirements.txt
    ```
 
-3. **Setting up token**
+3. **Setting up Groq API Token**
    ```bash
-      nano ~/.bashrc
+   nano ~/.bashrc
    ```
-   write the following line at the end of the file:
+   Add the following line:
    ```bash
-      export REPLICATE_API_TOKEN = your_token
+   export GROQ_API_KEY='your_api_key'
    ```
-   ctrl+x and y to save, then exit
+   Save and exit (Ctrl+X, then Y)
+   
+   Then reload your environment:
+   ```bash
+   source ~/.bashrc
+   ```
 
 4. **Run the Application:**
    ```bash
@@ -48,4 +67,4 @@ This is a Python project for the computer science subject Python in the Enterpri
 
 ## License
 
-No lincense
+No license
