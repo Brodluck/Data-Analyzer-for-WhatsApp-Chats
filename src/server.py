@@ -1,15 +1,7 @@
-"""
-    To run this, you gotta have installed streamlit:
-        pip3 install streamlit 
-        
-    then:
-        streamlit run server.py
-"""
 import streamlit as st
 import os, hashlib, json
 import pandas as pd
-import replicate
-from dotenv import load_dotenv
+from groq import Groq
 from PIL import Image
 from io import StringIO
 from plotting import plot_sender_count, plot_sender_percentage, plot_time_ranges
@@ -67,34 +59,15 @@ def get_unique_dates_from_chat(file_path):
 def filter_messages_by_date(messages, selected_date):
     return [msg for msg in messages if msg['date'].strftime("%Y-%m-%d") == selected_date]
 
-def display_chat_history():
-    st.markdown(f'<style>{load_css()}</style>', unsafe_allow_html=True)
-    # Display chat history
-    st.sidebar.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-    chat_history = st.session_state.get('chat_history', [])
-
-    for author, message in chat_history:
-        author_display = "You" if author == "You" else "ChatBot"
-        message_class = "user-message" if author == "You" else "bot-message"
-        st.sidebar.markdown(
-            f"<div class='chat-message {message_class}'>"
-            f"<span class='chat-author'>{author_display}</span>"
-            f"{message}</div>",
-            unsafe_allow_html=True
-        )
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
 def main():
     st.set_page_config(page_title="BenchPress Labs", layout="wide")
     
     st.markdown(f'<style>{load_css()}</style>', unsafe_allow_html=True)
     st.title("WhatsApp Analyzer by Benchpress Labs")
     
-    #Token for Replicate API
-    env_path = os.path.join(os.path.dirname(__file__), 'resources', '.env')
-    load_dotenv(env_path)
-    api_token = os.getenv('REPLICATE_API_TOKEN')
-    replicate.Client(api_token)
+    #Token for Groq API
+    api_key = os.getenv('GROQ_API_KEY')
+    groq_client = Groq(api_key=api_key)
     
     with st.sidebar:
         uploaded_files = list_uploaded_files()
@@ -106,64 +79,62 @@ def main():
             unique_dates = get_unique_dates_from_chat(file_path)
             selected_date = st.selectbox("Select Date for ChatBot", unique_dates)
             if selected_date:
-                    with open(file_path, "r") as file:
-                        stringio = StringIO(file.read())
-                        messages = parser(stringio)
-                        filtered_messages = filter_messages_by_date(messages, selected_date)
-
-                        if 'show_full_message' not in st.session_state:
-                            st.session_state.show_full_message = False
-
-                        limited_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages[:5]])
-                        full_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages])
-
-                        with st.expander("Sneak Peek of the Chat"):
-                            if not st.session_state.show_full_message:
-                                st.write(limited_sneak_peek)
-                                if st.button("Show More", key="show_more"):
-                                    st.session_state.show_full_message = True
-                            else:
-                                st.write(full_sneak_peek)
-                                if st.button("Show Less", key="show_less"):
-                                    st.session_state.show_full_message = False
-
-        st.sidebar.write("ChatBot")
-        if 'chat_history' not in st.session_state:
-            st.session_state['chat_history'] = []
-
-        user_input = st.sidebar.text_input("Type your message here:", key="chat_input")
-        if st.sidebar.button("Send"):
-            if 'file_path' in st.session_state and os.path.exists(st.session_state['file_path']):
-                with open(st.session_state['file_path'], "r") as file:
+                with open(file_path, "r") as file:
                     stringio = StringIO(file.read())
                     messages = parser(stringio)
                     filtered_messages = filter_messages_by_date(messages, selected_date)
 
-                st.session_state['chat_history'].append(("You", user_input))
+                    if 'show_full_message' not in st.session_state:
+                        st.session_state.show_full_message = False
 
-                # Prepare chat data for LLM
-                chat_text = " ".join([f"{msg['sender']}: {msg['message']};" for msg in filtered_messages])
-                combined_input = f"\"{chat_text}\"\nWith this data, answer this question: {user_input}"
+                    limited_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages[:5]])
+                    full_sneak_peek = "\n".join([f"{msg['sender']}: {msg['message']}" for msg in filtered_messages])
 
-                output = replicate.run(
-                    "meta/llama-2-70b-chat",
-                    input={
-                        "debug": False,
-                        "top_p": 1,
-                        "prompt": combined_input,
-                        "temperature": 0.5,
-                        "system_prompt": "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.",
-                        "max_new_tokens": 500,
-                        "min_new_tokens": -1
-                    },
-                )
-                full_bot_response = ''.join(output)
-                st.session_state['chat_history'].append(("Bot",full_bot_response))
+                    with st.expander("Sneak Peek of the Chat"):
+                        if not st.session_state.show_full_message:
+                            st.write(limited_sneak_peek)
+                            if st.button("Show More", key="show_more"):
+                                st.session_state.show_full_message = True
+                        else:
+                            st.write(full_sneak_peek)
+                            if st.button("Show Less", key="show_less"):
+                                st.session_state.show_full_message = False
 
-            else:
-                st.sidebar.error("Please select an uploaded chat file first.")
+                if "messages" not in st.session_state:
+                    st.session_state.messages = []
 
-        display_chat_history()
+                for message in st.session_state.messages:
+                    with st.chat_message(message["role"]):
+                        st.markdown(message["content"])
+
+                if prompt := st.chat_input("What would you like to know about the chat?"):
+                    st.session_state.messages.append({"role": "user", "content": prompt})
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+
+                    chat_text = " ".join([f"{msg['sender']}: {msg['message']};" for msg in filtered_messages])
+                    combined_input = f"\"{chat_text}\"\nWith this data, answer this question: {prompt}"
+
+                    with st.chat_message("assistant"):
+                        response = groq_client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."
+                                },
+                                {
+                                    "role": "user",
+                                    "content": combined_input
+                                }
+                            ],
+                            model="mixtral-8x7b-32768",
+                            temperature=0.5,
+                            max_tokens=500,
+                        )
+                        full_response = response.choices[0].message.content
+                        st.markdown(full_response)
+                        
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     with st.container():
         uploaded_file = st.file_uploader("Upload your WhatsApp chat file here (Drag and drop or click to browse)", 
@@ -224,7 +195,7 @@ def main():
                     files = ["sender_count_plot.png", "sender_percentage_plot.png", "time_ranges_plot.png"]
                     for i, file in enumerate(files):
                         image = Image.open(file)
-                        cols[i].image(image, use_column_width=True)
+                        cols[i].image(image)
 
 if __name__ == "__main__":
     main()
